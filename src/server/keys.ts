@@ -53,6 +53,7 @@ import {
 	validateKeyShape,
 } from "../core/auth-keys.ts";
 import { authStore } from "../store/auth.ts";
+import { getAntigravityAccountStatus } from "../agent/antigravity.ts";
 import { isSubscriptionProvider, subscriptionConnected } from "../agent/subscription-connections.ts";
 import { customProviderAvailable, installCustomProviderSource } from "./custom-provider.ts";
 import { claudeCodeAvailable } from "./claude-code-config.ts";
@@ -74,7 +75,18 @@ export function isWritableAuthKey(id: string): boolean {
  *  in core/auth-keys.ts and tests/auth-provider-keys.test.ts). Sorted by
  *  id for a stable payload. */
 export function providerKeyList() {
-	return [...AUTH_PROVIDER_KEYS].sort((a, b) => a.id.localeCompare(b.id));
+	const list = [...AUTH_PROVIDER_KEYS];
+	if (!envKeysIgnored()) {
+		const agStatus = getAntigravityAccountStatus();
+		if (agStatus.configured) {
+			list.push({
+				id: "antigravity",
+				envVar: "ANTIGRAVITY_ACCOUNT",
+				label: "Antigravity (Google OAuth)",
+			});
+		}
+	}
+	return list.sort((a, b) => a.id.localeCompare(b.id));
 }
 
 /** The fresh-user switch (owner, interlude 2026-09-22): env keys are
@@ -174,7 +186,21 @@ export function resolveKeyStatuses(
 
 /** The GET view: every curated key (present or not) + unknown file vars. */
 export function keyStatuses(): AuthKeyStatus[] {
-	return resolveKeyStatuses(authStore.authVars(), process.env, boot().realEnv, new Set([...AUTH_PROVIDER_ENV_VARS, CUSTOM_PROVIDER.envVar]));
+	const rows = resolveKeyStatuses(authStore.authVars(), process.env, boot().realEnv, new Set([...AUTH_PROVIDER_ENV_VARS, CUSTOM_PROVIDER.envVar]));
+	if (!envKeysIgnored()) {
+		const agStatus = getAntigravityAccountStatus();
+		if (agStatus.configured) {
+			rows.push({
+				id: "ANTIGRAVITY_ACCOUNT",
+				info: null,
+				present: true,
+				masked: agStatus.email ? `${agStatus.email} (Google OAuth)` : "Logged in (Google OAuth)",
+				source: "env",
+				shadowedByEnv: false,
+			});
+		}
+	}
+	return rows;
 }
 
 /** The live value for one var, env-first (the env-wins rule) — the canonical
@@ -197,6 +223,9 @@ export function keyValue(id: string): string | undefined {
  * (gate by what would run). Providers absent from AUTH_PROVIDER_KEYS take
  * no key at all: nothing to gate, present by definition. */
 export function providerKeyPresent(provider: string): boolean {
+	if (provider === "antigravity") {
+		return getAntigravityAccountStatus().configured;
+	}
 	if (provider === CUSTOM_PROVIDER.id) return customProviderAvailable();
 	// Explicit opt-in + installation only, never authentication readiness.
 	// Consulted at admission, not inside already-running agent loops.

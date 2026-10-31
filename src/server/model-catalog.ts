@@ -20,6 +20,7 @@
 import { clampThinkingLevel, getSupportedThinkingLevels, type Api, type Model } from "@earendil-works/pi-ai";
 import type { ThinkingLevel } from "@earendil-works/pi-agent-core";
 import { piModels } from "../agent/models.ts";
+import { getAntigravityAccountStatus } from "../agent/antigravity.ts";
 import { customProviderAvailable } from "./custom-provider.ts";
 import { chatGPTConnected, chatGPTModel, chatGPTModels, refreshChatGPTModels } from "../agent/chatgpt-bridge.ts";
 import { NATIVE_SUBSCRIPTIONS } from "../core/contracts/subscriptions.ts";
@@ -161,6 +162,9 @@ export function catalogProviders(): CatalogProvider[] {
 		...(customProviderUsable(effectiveSettings().customProvider)
 			? [{ id: CUSTOM_PROVIDER.id, envVar: CUSTOM_PROVIDER.envVar, keyPresent: customProviderAvailable() }]
 			: []),
+		...(piModels().getProvider("antigravity")
+			? [{ id: "antigravity", envVar: "ANTIGRAVITY_ACCOUNT", keyPresent: getAntigravityAccountStatus().configured }]
+			: []),
 	]).sort((a, b) => a.id.localeCompare(b.id));
 }
 
@@ -180,7 +184,7 @@ export function toModelDto(model: Model<Api>): ModelDto {
 		reasoning: model.reasoning,
 		input: [...model.input],
 		supportedLevels: getSupportedThinkingLevels(model),
-		cost: model.provider === CLAUDE_CODE_PROVIDER || model.provider === CUSTOM_PROVIDER.id ? null : {
+		cost: model.provider === CLAUDE_CODE_PROVIDER || model.provider === CUSTOM_PROVIDER.id || !model.cost ? null : {
 			input: model.cost.input,
 			output: model.cost.output,
 			cacheRead: model.cost.cacheRead,

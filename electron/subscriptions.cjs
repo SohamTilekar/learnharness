@@ -30,8 +30,9 @@ async function loadSubscriptionSDK(baseDirectory) {
 			return next(specifier, specifier === id ? { ...context, conditions: [...context.conditions, "import"] } : context);
 		} });
 		let file;
-		try { file = resolve.resolve(id); } finally { hook.deregister(); }
-		return import(pathToFileURL(file).href);
+		try { file = resolve.resolve(id); } catch {} finally { hook.deregister(); }
+		if (file) return import(pathToFileURL(file).href);
+		return import(id);
 	};
 	const [sdk, copilot, xai] = await Promise.all([load("@earendil-works/pi-ai"), load("@earendil-works/pi-ai/providers/github-copilot"), load("@earendil-works/pi-ai/providers/xai")]);
 	return { ...sdk, ...copilot, ...xai };

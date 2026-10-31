@@ -24,7 +24,7 @@
  *     would shadow every settings-page key change until restart.
  */
 
-const { app, BrowserWindow, Menu, ipcMain, session, shell } = require("electron");
+const { app, BrowserWindow, Menu, ipcMain, session, shell, dialog } = require("electron");
 const { createChatGPT, fileStore } = require("./chatgpt.cjs");
 const { attachChatGPTChild, trustedSender, chatGPTControl } = require("./chatgpt-ipc.cjs");
 const { createSubscriptions, loadSubscriptionSDK } = require("./subscriptions.cjs");
@@ -37,6 +37,7 @@ const fs = require("node:fs");
 const http = require("node:http");
 const net = require("node:net");
 const path = require("node:path");
+const { checkAntigravityStatus, ensureAntigravitySettings } = require(path.join(__dirname, "verify-antigravity.cjs"));
 
 // Mirrors SIDEBAR_AUTOCLOSE in components/sidebar.tsx — keep in sync (the
 // renderer owns the number; this is the IPC widen target).
@@ -676,6 +677,17 @@ async function main() {
 			},
 		});
 		await subscriptions.ready;
+		const agStatus = checkAntigravityStatus();
+		if (!agStatus.ok) {
+			dialog.showErrorBox(
+				"pi-antigravity Configuration Required",
+				`${agStatus.error}\n\nTo fix this:\n${agStatus.remedy}\n\nPlease complete this step in the Pi harness before running LearnHarness in production.`,
+			);
+			app.quit();
+			return;
+		}
+		ensureAntigravitySettings(DATA_DIR());
+		log(`pi-antigravity verified: account ${agStatus.email}`);
 		log(`starting server: ${serverEntry()}`);
 		log(`data dir: ${DATA_DIR()}${fs.existsSync(AUTH_FILE()) ? " · auth.json: present" : " · auth.json: ABSENT (no BYOK keys yet)"}`);
 		await startServer(new URL(url).port);
