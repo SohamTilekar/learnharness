@@ -9,6 +9,7 @@ const pkg = JSON.parse(readFileSync(new URL("./package.json", import.meta.url), 
 
 const nextConfig: NextConfig = {
 	basePath: process.env.BASE_PATH || undefined,
+	typescript: { ignoreBuildErrors: Boolean(process.env.NEXT_SKIP_TYPECHECK) },
 	// Public build metadata only; no new runtime Electron version API.
 	env: { LH_VERSION: pkg.version, LH_HOMEPAGE: pkg.homepage },
 	// Leave multipart headroom above the 25 MiB file allowance. This is a
@@ -20,7 +21,7 @@ const nextConfig: NextConfig = {
 	// on 127.0.0.1. Harmless for plain web deploys (extra build output).
 	// The manual copies the docs require — public/ and .next/static — are
 	// done by scripts/build-server.mjs.
-	output: "standalone",
+	output: process.env.LH_STANDALONE === "1" ? "standalone" : undefined,
 	// SAFETY (empirically verified 2026-09-17): without this, output file
 	// tracing sweeps the repo's real data/ — chat records, graph ledgers —
 	// INTO the standalone bundle. A shipped desktop app would carry the

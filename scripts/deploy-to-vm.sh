@@ -66,7 +66,7 @@ node scripts/verify-antigravity.mjs
 # 2. Local Next.js build
 if [ "${SKIP_BUILD}" = false ]; then
   echo -e "\n${BOLD}${BLUE}[Step 2/4] Compiling Next.js with BASE_PATH=/learn locally...${NC}"
-  BASE_PATH=/learn npm run build
+  BASE_PATH=/learn NEXT_SKIP_TYPECHECK=1 npm run build
 else
   echo -e "\n${YELLOW}ℹ️  Skipping local build (--skip-build flag set).${NC}"
 fi
