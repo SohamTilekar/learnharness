@@ -1,6 +1,9 @@
 import { readFileSync } from "node:fs";
 import type { NextConfig } from "next";
-import { MAX_IMPORT_BODY_BYTES } from "./lib/notes-import-limits.ts";
+
+// Mirrors MAX_IMPORT_BODY_BYTES in lib/notes-import-limits.ts (inlined to keep
+// next.config.ts self-contained during programmatic runtime transpile).
+const MAX_IMPORT_BODY_BYTES = 26 * 1024 * 1024;
 
 const pkg = JSON.parse(readFileSync(new URL("./package.json", import.meta.url), "utf8")) as { version: string; homepage: string };
 
