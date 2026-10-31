@@ -55,6 +55,22 @@ Sign-in opens a tab in the browser that initiated it; allow that tab if blocked.
 
 This is a **trusted local/shared developer-server mode**, not multi-user hosting. Same-origin JSON/custom-header checks and short-lived, origin-bound, one-use browser-opening actions prevent ordinary cross-origin browser controls. They are **not user authentication or DNS-rebinding protection**. Subscription support does not change Next's listening/LAN behavior. Do not expose the server to untrusted users or the public Internet without an independent access/host gate. Remote ChatGPT callback routing, per-user isolation and credential import are not implemented.
 
+## Subpath Web Hosting & Automata Co-Hosting (`/learn`)
+
+LearnHarness can be hosted as an embedded web application under a subpath (e.g. `https://automata.mywire.org/learn`) within Automata's Node.js instance on a remote VM:
+
+- **Dynamic `basePath`**: `next.config.ts` dynamically evaluates `basePath: process.env.BASE_PATH || undefined`. When building for subpath hosting (`BASE_PATH=/learn npm run build`), Next.js prefixes all client routes, script chunks, and asset tags with `/learn`. When unset (desktop / standalone dev), `basePath` evaluates to `undefined` (root `/`) with zero side effects.
+- **Fast Local Deployer (`scripts/deploy-to-vm.sh`)**:
+  Compiles Next.js locally on your workstation, creates a lightweight 32 MB bundle of `.next` (excluding dev cache and build internals), transfers it via SCP in ~4 seconds, and extracts it directly on the remote VM (`sohamtilekar233@35.209.219.191`).
+- **Data Preservation by Default**:
+  `scripts/deploy-to-vm.sh` bundles only the `.next` artifacts. The remote `data/` directory (`chats/*.json`, `graph/*.jsonl`, `settings.json`) is **strictly preserved**.
+  To intentionally overwrite remote data with your local workstation data, pass the `--overwrite-data` flag:
+  ```bash
+  ./scripts/deploy-to-vm.sh --overwrite-data
+  ```
+- **Pre-Flight Verification (`scripts/verify-antigravity.mjs`)**:
+  Before builds and server runs, the pre-flight gate verifies that the `pi-antigravity` extension is installed and an authenticated Google account (`antigravity-accounts.json`) is active, ensuring zero auth surprises in production.
+
 ## Source map
 
 | Work area | Start with |
